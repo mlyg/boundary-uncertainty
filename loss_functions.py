@@ -222,11 +222,14 @@ def border_uncertainty_sigmoid(seg, alpha = 0.9, beta = 0.1):
 
     res = np.zeros_like(seg)
     check_seg = seg.astype(np.bool)
+    
+    seg = np.squeeze(seg)
 
     if check_seg.any():
         kernel = np.ones((3,3),np.uint8)
         im_erode = cv2.erode(seg,kernel,iterations = 1)
         im_dilate = cv2.dilate(seg,kernel,iterations = 1)
+        
         # compute inner border and adjust certainty with alpha parameter
         inner = seg - im_erode
         inner = alpha * inner
@@ -234,7 +237,10 @@ def border_uncertainty_sigmoid(seg, alpha = 0.9, beta = 0.1):
         outer = im_dilate - seg
         outer = beta * outer
         # combine adjusted borders together with unadjusted image
+    
         res = inner + outer + im_erode
+        
+        res = np.expand_dims(res,axis=-1)
 
         return res
     else:
