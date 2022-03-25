@@ -32,13 +32,13 @@ def border_uncertainty(seg, alpha = 0.9, beta = 0.1):
 
     if check_seg.any():
         kernel = np.ones((3,3),np.uint8)
-        im_erode = cv2.erode(seg[:,:,1],kernel,iterations = 1)
-        im_dilate = cv2.dilate(seg[:,:,1],kernel,iterations = 1)
+        im_erode = cv2.erode(seg[:,:,:,1],kernel,iterations = 1)
+        im_dilate = cv2.dilate(seg[:,:,:,1],kernel,iterations = 1)
         # compute inner border and adjust certainty with alpha parameter
-        inner = seg[:,:,1] - im_erode
+        inner = seg[:,:,:,1] - im_erode
         inner = alpha * inner
         # compute outer border and adjust certainty with beta parameter
-        outer = im_dilate - seg[:,:,1]
+        outer = im_dilate - seg[:,:,:,1]
         outer = beta * outer
         # combine adjusted borders together with unadjusted image
         combined = inner + outer + im_erode
