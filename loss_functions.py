@@ -201,3 +201,70 @@ def sym_unified_focal_loss(weight=0.5, delta=0.6, gamma=0.5, boundary=True):
         return symmetric_ftl + symmetric_fl
 
     return loss_function
+
+
+############################################################
+
+# With sigmoid activation function
+
+# Function to calculate boundary uncertainty
+def border_uncertainty_sigmoid(seg, alpha = 0.9, beta = 0.1):
+    """
+    Parameters
+    ----------
+    alpha : float, optional
+        controls certainty of ground truth inner borders, by default 0.9.
+        Higher values more appropriate when over-segmentation is a concern
+    beta : float, optional
+        controls certainty of ground truth outer borders, by default 0.1
+        Higher values more appropriate when under-segmentation is a concern
+    """
+
+    res = np.zeros_like(seg)
+    check_seg = seg.astype(np.bool)
+
+    if check_seg.any():
+        kernel = np.ones((3,3),np.uint8)
+        im_erode = cv2.erode(seg,kernel,iterations = 1)
+        im_dilate = cv2.dilate(seg,kernel,iterations = 1)
+        # compute inner border and adjust certainty with alpha parameter
+        inner = seg - im_erode
+        inner = alpha * inner
+        # compute outer border and adjust certainty with beta parameter
+        outer = im_dilate - seg
+        outer = beta * outer
+        # combine adjusted borders together with unadjusted image
+        res = inner + outer + im_erode
+
+        return res
+    else:
+        return res
+
+# Enables batch processing of boundary uncertainty
+def border_uncertainty_sigmoid_batch(y_true):
+    y_true_numpy = y_true.numpy()
+    return np.array([border_uncertainty_sigmoid(y) for y in y_true_numpy]).astype(np.float32)
+
+
+# Dice loss - sigmoid activation
+def dice_loss_sigmoid(y_true, y_pred, boundary=True, smooth=0.00001):
+
+    # Identify axis
+    axis = identify_axis(y_true.get_shape())
+
+    if boundary:
+        y_true = tf.py_function(func=border_uncertainty_sigmoid_batch, inp=[y_true], Tout=tf.float32)
+
+    # Calculate required variables
+    intersection = y_true * y_pred
+    intersection = K.sum(intersection, axis=axis)
+    y_true = K.sum(y_true, axis=axis)
+    y_pred = K.sum(y_pred, axis=axis)
+
+    # Calculate Soft Dice Similarity Coefficient
+    dice = ((2 * intersection) + smooth) / (y_true + y_pred + smooth)
+
+    # Obtain mean of Dice & return result score
+    dice = K.mean(dice)
+
+    return 1 - dice
