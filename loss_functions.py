@@ -16,6 +16,17 @@ def identify_axis(shape):
 
 # Function to calculate boundary uncertainty
 def border_uncertainty(seg, alpha = 0.9, beta = 0.1):
+    """
+    Parameters
+    ----------
+    alpha : float, optional
+        controls certainty of ground truth inner borders, by default 0.9.
+        Higher values more appropriate when over-segmentation is a concern
+    beta : float, optional
+        controls certainty of ground truth outer borders, by default 0.1
+        Higher values more appropriate when under-segmentation is a concern
+    """
+
     res = np.zeros_like(seg)
     check_seg = seg.astype(np.bool)
 
